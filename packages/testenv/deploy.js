@@ -2,6 +2,7 @@ const ethers = require('ethers')
 const assert = require('assert')
 const ganache = require('ganache-cli')
 const { hexlify, createIPFShash, abiEncodeWithSelector } = require('./utils')
+const ErasureHelper = require('@erasure/crypto-ipfs')
 
 let c = {
   NMR: {
@@ -25,6 +26,14 @@ let c = {
     },
     template: {
       artifact: require('./build/SimpleGriefing.json'),
+    },
+  },
+  AtStake: {
+    factory: {
+      artifact: require('./build/AtStake_Factory.json'),
+    },
+    template: {
+      artifact: require('./build/AtStake.json'),
     },
   },
   CountdownGriefing: {
@@ -274,6 +283,11 @@ Deploy Factories
     c.Erasure_Agreements.wrap,
     deploySigner,
   )
+  ;[c.AtStake.template.wrap, c.AtStake.factory.wrap] = await deployFactory(
+    'AtStake',
+    c.Erasure_Agreements.wrap,
+    deploySigner,
+  )
   ;[c.Feed.template.wrap, c.Feed.factory.wrap] = await deployFactory(
     'Feed',
     c.Erasure_Posts.wrap,
@@ -349,6 +363,49 @@ Deploy Factories
         2,
         100000000,
         IPFShash,
+      ],
+    ),
+  )
+
+  await createInstance(
+    'AtStake',
+    ErasureHelper.encodeCreateCall(
+      c.AtStake.template.artifact.compilerOutput.abi,
+      [
+        proofhash,
+        await ErasureHelper.multihash({
+          input: 'URI',
+          inputType: 'raw',
+          outputType: 'b58',
+        }),
+        [
+          userAddress,
+          await nmrSigner.getAddress(),
+          await deploySigner.getAddress(),
+          c.NMR.wrap.address,
+          c.NMR.wrap.address,
+          c.NMR.wrap.address,
+        ],
+        [
+          ethers.utils.parseEther('5'),
+          ethers.utils.parseEther('5'),
+          ethers.utils.parseEther('1'),
+          ethers.utils.parseEther('1'),
+          1,
+          ethers.utils.parseEther('2'),
+          ethers.utils.parseEther('2'),
+          1,
+          10000000,
+          10000000,
+          18,
+          18,
+          18,
+        ],
+        await ErasureHelper.multihash({
+          input: 'extradata',
+          inputType: 'raw',
+          outputType: 'hex',
+        }),
       ],
     ),
   )
